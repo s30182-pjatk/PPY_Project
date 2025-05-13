@@ -87,6 +87,14 @@ def run_game():
         draw_grid()
         pygame.display.flip()
 
+        if paused:
+            mouse_held = pygame.mouse.get_pressed()[0]  # Left mouse button held
+            if mouse_held:
+                mx, my = pygame.mouse.get_pos()
+                x, y = mx // CELL_SIZE, my // CELL_SIZE
+                if 0 <= x < GRID_WIDTH and 0 <= y < GRID_HEIGHT:
+                    grid[y][x] = 1  # Set cell alive
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -96,10 +104,6 @@ def run_game():
                     paused = not paused
                 elif event.key == pygame.K_c:
                     grid = np.zeros_like(grid)
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mx, my = pygame.mouse.get_pos()
-                x, y = mx // CELL_SIZE, my // CELL_SIZE
-                grid[y][x] = 1 - grid[y][x]
 
         if not paused:
             grid = update_grid(grid)

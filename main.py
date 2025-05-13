@@ -52,6 +52,7 @@ def run_game():
     grid = np.zeros((GRID_HEIGHT, GRID_WIDTH), dtype=int)
     paused = True
     running = True
+    show_menu = False
 
     def count_neighbors(grid, y, x):
         total = 0
@@ -82,18 +83,50 @@ def run_game():
                 pygame.draw.rect(screen, color, rect)
                 pygame.draw.rect(screen, GRID_COLOR, rect, 1)
 
+    def pause_menu():
+        nonlocal show_menu
+        menu_buttons = [
+            Button("Continue", WINDOW_WIDTH//2 - 100, 200, 200, 60, resume_game),
+            Button("Save", WINDOW_WIDTH//2 - 100, 300, 200, 60, lambda: print("Save placeholder")),
+            Button("Main Menu", WINDOW_WIDTH//2 - 100, 400, 200, 60, exit_to_main_menu),
+        ]
+
+        while show_menu:
+            screen.fill(BG_COLOR)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    for btn in menu_buttons:
+                        btn.check_click(event.pos)
+
+            for btn in menu_buttons:
+                btn.draw(screen)
+            pygame.display.flip()
+            clock.tick(60)
+
+    def resume_game():
+        nonlocal paused, show_menu
+        paused = True  # Go back to paused state, then resume loop
+        show_menu = False
+        return
+
+    def exit_to_main_menu():
+        main_menu()
+
     while running:
         screen.fill(DEAD_COLOR)
         draw_grid()
         pygame.display.flip()
 
         if paused:
-            mouse_held = pygame.mouse.get_pressed()[0]  # Left mouse button held
+            mouse_held = pygame.mouse.get_pressed()[0]
             if mouse_held:
                 mx, my = pygame.mouse.get_pos()
                 x, y = mx // CELL_SIZE, my // CELL_SIZE
                 if 0 <= x < GRID_WIDTH and 0 <= y < GRID_HEIGHT:
-                    grid[y][x] = 1  # Set cell alive
+                    grid[y][x] = 1
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -104,11 +137,15 @@ def run_game():
                     paused = not paused
                 elif event.key == pygame.K_c:
                     grid = np.zeros_like(grid)
+                elif event.key == pygame.K_p:
+                    show_menu = not show_menu
+                    pause_menu()
 
         if not paused:
             grid = update_grid(grid)
 
         clock.tick(FPS)
+
 
 
 def show_settings():

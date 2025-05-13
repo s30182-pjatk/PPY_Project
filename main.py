@@ -177,11 +177,43 @@ def main_menu():
     def load_and_run():
         run_game(load_grid())
 
+    def choose_pattern_menu():
+        pattern_dir = "static_patterns"
+        files = [
+            f for f in os.listdir(pattern_dir)
+            if f.endswith(".pkl") and f != "savegame.pkl"
+        ]
+        buttons = []
+        for i, fname in enumerate(files):
+            name = fname[:-4]  # remove .pkl
+            path = os.path.join(pattern_dir, fname)
+            buttons.append(Button(name, WINDOW_WIDTH//2 - 100, 150 + i*80, 200, 60,
+                                  lambda p=path: run_game(load_pattern(p))))
+
+        while True:
+            screen.fill(BG_COLOR)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    quit_game()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    for btn in buttons:
+                        btn.check_click(event.pos)
+
+            for btn in buttons:
+                btn.draw(screen)
+            pygame.display.flip()
+            clock.tick(60)
+
+    def load_pattern(path):
+        with open(path, "rb") as f:
+            return pickle.load(f)
+
     buttons = [
         Button("Start", WINDOW_WIDTH//2 - 100, 150, 200, 60, run_game),
         Button("Load Save", WINDOW_WIDTH//2 - 100, 230, 200, 60, load_and_run),
-        Button("Settings", WINDOW_WIDTH//2 - 100, 310, 200, 60, show_settings),
-        Button("Quit", WINDOW_WIDTH//2 - 100, 390, 200, 60, quit_game),
+        Button("Choose Pattern", WINDOW_WIDTH//2 - 100, 310, 200, 60, choose_pattern_menu),
+        Button("Settings", WINDOW_WIDTH//2 - 100, 390, 200, 60, show_settings),
+        Button("Quit", WINDOW_WIDTH//2 - 100, 470, 200, 60, quit_game),
     ]
 
     while True:
@@ -198,6 +230,7 @@ def main_menu():
 
         pygame.display.flip()
         clock.tick(60)
+
 
 
 if __name__ == "__main__":

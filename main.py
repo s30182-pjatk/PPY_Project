@@ -1,3 +1,5 @@
+import pickle
+import os
 import pygame
 import numpy as np
 import sys
@@ -9,6 +11,7 @@ GRID_HEIGHT = 60
 WINDOW_WIDTH = CELL_SIZE * GRID_WIDTH
 WINDOW_HEIGHT = CELL_SIZE * GRID_HEIGHT
 FPS = 10
+SAVE_FILE = "savegame.pkl"
 
 # --- Colors ---
 WHITE = (255, 255, 255)
@@ -47,9 +50,22 @@ class Button:
             self.callback()
 
 
+# --- Save/Load helpers ---
+def save_grid(grid):
+    with open(SAVE_FILE, "wb") as f:
+        pickle.dump(grid, f)
+    print("Game saved.")
+
+def load_grid():
+    if os.path.exists(SAVE_FILE):
+        with open(SAVE_FILE, "rb") as f:
+            return pickle.load(f)
+    return np.zeros((GRID_HEIGHT, GRID_WIDTH), dtype=int)
+
+
 # --- Menu actions ---
-def run_game():
-    grid = np.zeros((GRID_HEIGHT, GRID_WIDTH), dtype=int)
+def run_game(grid=None):
+    grid = grid if grid is not None else np.zeros((GRID_HEIGHT, GRID_WIDTH), dtype=int)
     paused = True
     running = True
     show_menu = False
@@ -87,7 +103,7 @@ def run_game():
         nonlocal show_menu
         menu_buttons = [
             Button("Continue", WINDOW_WIDTH//2 - 100, 200, 200, 60, resume_game),
-            Button("Save", WINDOW_WIDTH//2 - 100, 300, 200, 60, lambda: print("Save placeholder")),
+            Button("Save", WINDOW_WIDTH//2 - 100, 300, 200, 60, lambda: save_grid(grid)),
             Button("Main Menu", WINDOW_WIDTH//2 - 100, 400, 200, 60, exit_to_main_menu),
         ]
 
@@ -108,7 +124,7 @@ def run_game():
 
     def resume_game():
         nonlocal paused, show_menu
-        paused = True  # Go back to paused state, then resume loop
+        paused = True
         show_menu = False
         return
 
@@ -147,7 +163,6 @@ def run_game():
         clock.tick(FPS)
 
 
-
 def show_settings():
     print("Settings button clicked (not implemented yet).")
 
@@ -159,10 +174,14 @@ def quit_game():
 
 # --- Main Menu ---
 def main_menu():
+    def load_and_run():
+        run_game(load_grid())
+
     buttons = [
-        Button("Start", WINDOW_WIDTH//2 - 100, 200, 200, 60, run_game),
-        Button("Settings", WINDOW_WIDTH//2 - 100, 300, 200, 60, show_settings),
-        Button("Quit", WINDOW_WIDTH//2 - 100, 400, 200, 60, quit_game),
+        Button("Start", WINDOW_WIDTH//2 - 100, 150, 200, 60, run_game),
+        Button("Load Save", WINDOW_WIDTH//2 - 100, 230, 200, 60, load_and_run),
+        Button("Settings", WINDOW_WIDTH//2 - 100, 310, 200, 60, show_settings),
+        Button("Quit", WINDOW_WIDTH//2 - 100, 390, 200, 60, quit_game),
     ]
 
     while True:

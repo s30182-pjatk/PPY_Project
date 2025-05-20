@@ -210,7 +210,7 @@ Starts the game by launching the main menu.
 Install via:
 
 ```bash
-pip install pygame numpy
+pip install -r requirements.txt
 ```
 
 ---

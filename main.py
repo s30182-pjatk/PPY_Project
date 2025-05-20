@@ -13,6 +13,7 @@ WINDOW_HEIGHT = CELL_SIZE * GRID_HEIGHT
 FPS = 10
 SAVE_FILE = "savegame.pkl"
 
+
 # --- Colors ---
 WHITE = (255, 255, 255)
 DEAD_COLOR = (30, 30, 30)
@@ -24,26 +25,36 @@ BUTTON_HOVER = (0, 150, 0)
 
 # --- Init ---
 pygame.init()
+FONT = pygame.font.Font("fonts/PressStart2P.ttf", 32)
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Conway's Game of Life")
 font = pygame.font.SysFont(None, 36)
 clock = pygame.time.Clock()
 
+BUTTON_WIDTH = 200
+BUTTON_HEIGHT = 50
 
 # --- Button class ---
 class Button:
-    def __init__(self, text, x, y, w, h, callback):
+    def __init__(self, text, x, y, w, h, callback, bg_color=None):
         self.text = text
         self.rect = pygame.Rect(x, y, w, h)
         self.callback = callback
+        self.bg_color = bg_color  # Optional custom color
 
     def draw(self, surface):
         mouse_pos = pygame.mouse.get_pos()
-        color = BUTTON_HOVER if self.rect.collidepoint(mouse_pos) else BUTTON_COLOR
+        if self.bg_color:
+            color = self.bg_color
+        else:
+            color = BUTTON_HOVER if self.rect.collidepoint(mouse_pos) else BUTTON_COLOR
+
         pygame.draw.rect(surface, color, self.rect)
-        txt = font.render(self.text, True, WHITE)
-        txt_rect = txt.get_rect(center=self.rect.center)
-        surface.blit(txt, txt_rect)
+
+        if self.text:
+            txt = font.render(self.text, True, WHITE)
+            txt_rect = txt.get_rect(center=self.rect.center)
+            surface.blit(txt, txt_rect)
 
     def check_click(self, pos):
         if self.rect.collidepoint(pos):
@@ -66,9 +77,10 @@ def load_grid():
 # --- Menu actions ---
 def run_game(grid=None):
     grid = grid if grid is not None else np.zeros((GRID_HEIGHT, GRID_WIDTH), dtype=int)
-    paused = True
+    paused = False
     running = True
     show_menu = False
+    toggled_cells = set()
 
     def count_neighbors(grid, y, x):
         total = 0
@@ -117,6 +129,7 @@ def run_game(grid=None):
                     for btn in menu_buttons:
                         btn.check_click(event.pos)
 
+
             for btn in menu_buttons:
                 btn.draw(screen)
             pygame.display.flip()
@@ -136,14 +149,6 @@ def run_game(grid=None):
         draw_grid()
         pygame.display.flip()
 
-        if paused:
-            mouse_held = pygame.mouse.get_pressed()[0]
-            if mouse_held:
-                mx, my = pygame.mouse.get_pos()
-                x, y = mx // CELL_SIZE, my // CELL_SIZE
-                if 0 <= x < GRID_WIDTH and 0 <= y < GRID_HEIGHT:
-                    grid[y][x] = 1
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -156,6 +161,21 @@ def run_game(grid=None):
                 elif event.key == pygame.K_p:
                     show_menu = not show_menu
                     pause_menu()
+            elif paused and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                # Start new drag - reset toggled set
+                toggled_cells.clear()
+                mx, my = event.pos
+                x, y = mx // CELL_SIZE, my // CELL_SIZE
+                if 0 <= x < GRID_WIDTH and 0 <= y < GRID_HEIGHT:
+                    grid[y][x] = not grid[y][x]
+                    toggled_cells.add((x, y))
+            elif paused and event.type == pygame.MOUSEMOTION and pygame.mouse.get_pressed()[0]:
+                mx, my = event.pos
+                x, y = mx // CELL_SIZE, my // CELL_SIZE
+                if 0 <= x < GRID_WIDTH and 0 <= y < GRID_HEIGHT:
+                    if (x, y) not in toggled_cells:
+                        grid[y][x] = not grid[y][x]
+                        toggled_cells.add((x, y))
 
         if not paused:
             grid = update_grid(grid)
@@ -164,7 +184,88 @@ def run_game(grid=None):
 
 
 def show_settings():
-    print("Settings button clicked (not implemented yet).")
+    global ALIVE_COLOR, DEAD_COLOR
+
+    # Color options (avoiding green-only choices)
+    color_options = [
+        (0, 255, 0),     # Green
+        (255, 0, 0),     # Red
+        (0, 200, 200),   # Cyan
+        (255, 255, 0),   # Yellow
+        (255, 105, 180), # Hot pink
+        (160, 32, 240),  # Purple
+        (255, 165, 0),   # Orange
+        (200, 200, 200), # Light gray
+    ]
+
+    # Track selected indices
+    alive_index = color_options.index(ALIVE_COLOR) if ALIVE_COLOR in color_options else 0
+    dead_index = color_options.index(DEAD_COLOR) if DEAD_COLOR in color_options else 0
+
+    def set_alive(index):
+        nonlocal alive_index
+        alive_index = index
+
+    def set_dead(index):
+        nonlocal dead_index
+        dead_index = index
+
+    def apply_settings():
+        global ALIVE_COLOR, DEAD_COLOR
+        ALIVE_COLOR = color_options[alive_index]
+        DEAD_COLOR = color_options[dead_index]
+        main_menu()
+
+    def back():
+        main_menu()
+
+    # Buttons for color options
+    alive_buttons = [
+        Button("", 80 + i * 90, 200, 60, 60, lambda i=i: set_alive(i), bg_color=color_options[i])
+        for i in range(len(color_options))
+    ]
+    dead_buttons = [
+        Button("", 80 + i * 90, 320, 60, 60, lambda i=i: set_dead(i), bg_color=color_options[i])
+        for i in range(len(color_options))
+    ]
+
+    apply_button = Button("Apply", 250, 450, 130, 60, apply_settings)
+    back_button = Button("Back", 420, 450, 130, 60, back)
+
+    while True:
+        screen.fill(BG_COLOR)
+
+        # Labels
+        screen.blit(font.render("Settings", True, WHITE), (WINDOW_WIDTH // 2 - 70, 100))
+        screen.blit(font.render("Alive Cell Color:", True, WHITE), (80, 160))
+        screen.blit(font.render("Dead Cell Color:", True, WHITE), (80, 280))
+
+        # Draw color selection buttons
+        for i, btn in enumerate(alive_buttons):
+            pygame.draw.rect(screen, color_options[i], btn.rect)
+            if i == alive_index:
+                pygame.draw.rect(screen, WHITE, btn.rect, 3)
+            btn.draw(screen)
+
+        for i, btn in enumerate(dead_buttons):
+            pygame.draw.rect(screen, color_options[i], btn.rect)
+            if i == dead_index:
+                pygame.draw.rect(screen, WHITE, btn.rect, 3)
+            btn.draw(screen)
+
+        apply_button.draw(screen)
+        back_button.draw(screen)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                quit_game()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                for btn in alive_buttons + dead_buttons + [apply_button, back_button]:
+                    btn.check_click(event.pos)
+
+        pygame.display.flip()
+        clock.tick(60)
+
 
 
 def quit_game():
@@ -190,6 +291,8 @@ def main_menu():
             buttons.append(Button(name, WINDOW_WIDTH//2 - 100, 150 + i*80, 200, 60,
                                   lambda p=path: run_game(load_pattern(p))))
 
+
+
         while True:
             screen.fill(BG_COLOR)
             for event in pygame.event.get():
@@ -198,6 +301,8 @@ def main_menu():
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     for btn in buttons:
                         btn.check_click(event.pos)
+
+
 
             for btn in buttons:
                 btn.draw(screen)
@@ -208,16 +313,22 @@ def main_menu():
         with open(path, "rb") as f:
             return pickle.load(f)
 
+
+
     buttons = [
-        Button("Start", WINDOW_WIDTH//2 - 100, 150, 200, 60, run_game),
-        Button("Load Save", WINDOW_WIDTH//2 - 100, 230, 200, 60, load_and_run),
-        Button("Choose Pattern", WINDOW_WIDTH//2 - 100, 310, 200, 60, choose_pattern_menu),
-        Button("Settings", WINDOW_WIDTH//2 - 100, 390, 200, 60, show_settings),
-        Button("Quit", WINDOW_WIDTH//2 - 100, 470, 200, 60, quit_game),
+        Button("Start", WINDOW_WIDTH//2 - 100, 150, BUTTON_WIDTH, BUTTON_HEIGHT, run_game),
+        Button("Load Save", WINDOW_WIDTH//2 - 100, 230, BUTTON_WIDTH, BUTTON_HEIGHT, load_and_run),
+        Button("Choose Pattern", WINDOW_WIDTH//2 - 100, 310, BUTTON_WIDTH, BUTTON_HEIGHT, choose_pattern_menu),
+        Button("Settings", WINDOW_WIDTH//2 - 100, 390, BUTTON_WIDTH, BUTTON_HEIGHT, show_settings),
+        Button("Quit", WINDOW_WIDTH//2 - 100, 470, BUTTON_WIDTH, BUTTON_HEIGHT, quit_game),
     ]
+
+    title_text = FONT.render("Game of Life", True, WHITE)
+    title_rect = title_text.get_rect(center=(WINDOW_WIDTH // 2, 80))
 
     while True:
         screen.fill(BG_COLOR)
+        screen.blit(title_text, title_rect)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 quit_game()

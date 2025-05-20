@@ -4,7 +4,7 @@ import pygame
 import numpy as np
 import sys
 
-# --- Configuration ---
+
 CELL_SIZE = 10
 GRID_WIDTH = 80
 GRID_HEIGHT = 60
@@ -14,7 +14,7 @@ FPS = 10
 SAVE_FILE = "savegame.pkl"
 
 
-# --- Colors ---
+
 WHITE = (255, 255, 255)
 DEAD_COLOR = (30, 30, 30)
 ALIVE_COLOR = (0, 255, 0)
@@ -23,7 +23,7 @@ BG_COLOR = (40, 40, 40)
 BUTTON_COLOR = (0, 200, 0)
 BUTTON_HOVER = (0, 150, 0)
 
-# --- Init ---
+
 pygame.init()
 FONT = pygame.font.Font("fonts/PressStart2P.ttf", 32)
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -34,13 +34,13 @@ clock = pygame.time.Clock()
 BUTTON_WIDTH = 200
 BUTTON_HEIGHT = 50
 
-# --- Button class ---
+
 class Button:
     def __init__(self, text, x, y, w, h, callback, bg_color=None):
         self.text = text
         self.rect = pygame.Rect(x, y, w, h)
         self.callback = callback
-        self.bg_color = bg_color  # Optional custom color
+        self.bg_color = bg_color  
 
     def draw(self, surface):
         mouse_pos = pygame.mouse.get_pos()
@@ -61,7 +61,7 @@ class Button:
             self.callback()
 
 
-# --- Save/Load helpers ---
+
 def save_grid(grid):
     with open(SAVE_FILE, "wb") as f:
         pickle.dump(grid, f)
@@ -74,7 +74,7 @@ def load_grid():
     return np.zeros((GRID_HEIGHT, GRID_WIDTH), dtype=int)
 
 
-# --- Menu actions ---
+
 def run_game(grid=None):
     grid = grid if grid is not None else np.zeros((GRID_HEIGHT, GRID_WIDTH), dtype=int)
     paused = False
@@ -162,7 +162,7 @@ def run_game(grid=None):
                     show_menu = not show_menu
                     pause_menu()
             elif paused and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                # Start new drag - reset toggled set
+                
                 toggled_cells.clear()
                 mx, my = event.pos
                 x, y = mx // CELL_SIZE, my // CELL_SIZE
@@ -186,19 +186,19 @@ def run_game(grid=None):
 def show_settings():
     global ALIVE_COLOR, DEAD_COLOR
 
-    # Color options (avoiding green-only choices)
+    
     color_options = [
-        (0, 255, 0),     # Green
-        (255, 0, 0),     # Red
-        (0, 200, 200),   # Cyan
-        (255, 255, 0),   # Yellow
-        (255, 105, 180), # Hot pink
-        (160, 32, 240),  # Purple
-        (255, 165, 0),   # Orange
-        (200, 200, 200), # Light gray
+        (0, 255, 0),     
+        (255, 0, 0),     
+        (0, 200, 200),   
+        (255, 255, 0),   
+        (255, 105, 180), 
+        (160, 32, 240),  
+        (255, 165, 0),   
+        (200, 200, 200), 
     ]
 
-    # Track selected indices
+    
     alive_index = color_options.index(ALIVE_COLOR) if ALIVE_COLOR in color_options else 0
     dead_index = color_options.index(DEAD_COLOR) if DEAD_COLOR in color_options else 0
 
@@ -219,7 +219,7 @@ def show_settings():
     def back():
         main_menu()
 
-    # Buttons for color options
+    
     alive_buttons = [
         Button("", 80 + i * 90, 200, 60, 60, lambda i=i: set_alive(i), bg_color=color_options[i])
         for i in range(len(color_options))
@@ -235,12 +235,12 @@ def show_settings():
     while True:
         screen.fill(BG_COLOR)
 
-        # Labels
+        
         screen.blit(font.render("Settings", True, WHITE), (WINDOW_WIDTH // 2 - 70, 100))
         screen.blit(font.render("Alive Cell Color:", True, WHITE), (80, 160))
         screen.blit(font.render("Dead Cell Color:", True, WHITE), (80, 280))
 
-        # Draw color selection buttons
+        
         for i, btn in enumerate(alive_buttons):
             pygame.draw.rect(screen, color_options[i], btn.rect)
             if i == alive_index:
@@ -273,7 +273,7 @@ def quit_game():
     sys.exit()
 
 
-# --- Main Menu ---
+
 def main_menu():
     def load_and_run():
         run_game(load_grid())
@@ -286,7 +286,7 @@ def main_menu():
         ]
         buttons = []
         for i, fname in enumerate(files):
-            name = fname[:-4]  # remove .pkl
+            name = fname[:-4]  
             path = os.path.join(pattern_dir, fname)
             buttons.append(Button(name, WINDOW_WIDTH//2 - 100, 150 + i*80, 200, 60,
                                   lambda p=path: run_game(load_pattern(p))))
